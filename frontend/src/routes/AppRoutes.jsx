@@ -13,7 +13,7 @@ import ChatPage from "../pages/chat/ChatPage";
 function AppRoutes() {
   return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      <Route path="/" element={<Navigate to="/register" replace />} />
 
       <Route path="/login" element={<Login />} />
 
