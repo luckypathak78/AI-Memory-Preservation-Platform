@@ -2,6 +2,8 @@
 
 An AI-powered platform that preserves communication patterns from historical conversations and uses them to generate natural, context-aware conversations.
 
+🚀 Live Demo: https://ai-memory-preservation-platform.vercel.app/
+
 ## Overview
 
 People change over time, and their way of communicating can change with them.
