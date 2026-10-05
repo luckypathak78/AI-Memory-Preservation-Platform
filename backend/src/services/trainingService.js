@@ -1,10 +1,10 @@
-import fs from "fs/promises";
-import path from "path";
+import { once } from "events";
 
 import Memory from "../models/Memory.js";
 import Personality from "../models/Personality.js";
 import parseWhatsAppChat from "../utils/chatParser.js";
 import trainMemory from "../ai/trainMemory.js";
+import { getGridFSBucket } from "../database/gridfs.js";
 
 const trainPersonality = async (memoryId, userId) => {
   const memory = await Memory.findOne({
@@ -16,25 +16,43 @@ const trainPersonality = async (memoryId, userId) => {
     throw new Error("Memory not found");
   }
 
-  const filePath = path.join("uploads", memory.fileName);
+  const bucket = getGridFSBucket();
 
-  const chat = await fs.readFile(filePath, "utf-8");
+  const downloadStream = bucket.openDownloadStream(
+    memory.gridFsFileId
+  );
+
+  const chunks = [];
+
+  downloadStream.on("data", (chunk) => {
+    chunks.push(chunk);
+  });
+
+  await once(downloadStream, "end");
+
+  const chat = Buffer.concat(chunks).toString("utf-8");
 
   const messages = parseWhatsAppChat(chat);
 
-  // FIRST create the analysis
+  if (messages.length === 0) {
+    throw new Error(
+      "No valid WhatsApp messages were found in the uploaded file."
+    );
+  }
+
   const analysis = await trainMemory(messages);
 
-  // THEN update the memory
   memory.status = "Processed";
   await memory.save();
 
-  // THEN update the personality
   const personality = await Personality.findById(memory.personality);
+
+  if (!personality) {
+    throw new Error("Personality not found");
+  }
 
   personality.aiProfile = analysis;
   personality.status = "Ready";
-
   await personality.save();
 
   return {
